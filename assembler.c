@@ -11,7 +11,15 @@
 
 //Every LC2K file will contain less than 1000 lines of assembly.
 #define MAXLINELENGTH 1000
+struct mylabel{
+    char name[7];
+    int addy;
+};
 int pc = 0;
+int Text = 0; // used in the header. The number of instruction above .fill
+int Data = 0; // used in the header. The number of .fill
+int Symbol_table = 0; // useed in the header. Mapping of symbols
+int Relocation_Table = 0; // in the header. Any address that may shift
 int readAndParse(FILE *, char *, char *, char *, char *, char *);
 static void checkForBlankLinesInCode(FILE *inFilePtr);
 static inline int isNumber(char *);
@@ -55,11 +63,19 @@ int O_type_instruction(int opcode, FILE*outfileptr){
     fprintf(outfileptr, "%d\n", opcode);
     return 0;
 }
-struct mylabel{
-    char name[7];
-    int addy;
-};
 
+int reg_check(int arg){
+    int arg_num;
+    if(isNumber(arg)){
+            arg_num = atoi(arg);
+        }else{
+            exit(1);
+        }
+    if(arg_num < 0 || arg_num > 7){
+            exit (1);
+        }
+    return arg_num;
+}
 struct mylabel labels[MAXLINELENGTH];
 
 int arg2_as_int(char *arg2, int num_of_labels, int opcode){
@@ -145,6 +161,9 @@ int main(int argc, char **argv){
         num_of_labels++;
       }
        linecounter++;
+       if(!strcmp(opcode, ".fill")){
+         Text++; // for header
+        }
     }
     for(int a = 0; a < num_of_labels - 1; a++){ //error checking for dup labels
         for(int b = a + 1; b < num_of_labels; b++){
@@ -153,170 +172,59 @@ int main(int argc, char **argv){
             }
         }
     }
+    Data = linecounter - Text; //finding data for header
     rewind(inFilePtr);
     while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) { //second pass
       if(!strcmp(opcode, "add")){
         int opcode_int = 0;
-        int arg0_int;
-        int arg1_int;
-        int arg2_int;
-        if(isNumber(arg0)){
-            arg0_int = atoi(arg0);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg1)){
-            arg1_int = atoi(arg1);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg2)){
-            arg2_int = atoi(arg2);
-        }else{
-            exit(1);
-        }
-        if(arg0_int < 0 || arg0_int > 7){
-            exit (1);
-        }
-        if(arg1_int < 0 || arg1_int > 7){
-            exit (1);
-        }
-        if(arg2_int < 0 || arg2_int > 7){
-            exit (1);
-        }
+        int arg0_int = reg_check(arg0);
+        int arg1_int = reg_check(arg1);
+        int arg2_int = reg_check(arg2);
         arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int); // for making arg2 a function
         R_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
       else if(!strcmp(opcode, "nor")){
         int opcode_int = 1;
-        int arg0_int;
-        int arg1_int;
-        int arg2_int;
-        if(isNumber(arg0)){
-            arg0_int = atoi(arg0);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg1)){
-            arg1_int = atoi(arg1);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg2)){
-            arg2_int = atoi(arg2);
-        }else{
-            exit(1);
-        }
-        if(arg0_int < 0 || arg0_int > 7){
-            exit (1);
-        }
-        if(arg1_int < 0 || arg1_int > 7){
-            exit (1);
-        }
-        if(arg2_int < 0 || arg2_int > 7){
-            exit (1);
-        }
+        int arg0_int = reg_check(arg0);
+        int arg1_int = reg_check(arg1);
+        int arg2_int = reg_check(arg2);
         arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         R_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
       else if(!strcmp(opcode, "lw")){
         int opcode_int = 2;
-        int arg0_int;
-        int arg1_int;
-        int arg2_int;
-        if(isNumber(arg0)){
-            arg0_int = atoi(arg0);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg1)){
-            arg1_int = atoi(arg1);
-        }else{
-            exit(1);
-        }
-        if(arg0_int < 0 || arg0_int > 7){
-            exit (1);
-        }
-        if(arg1_int < 0 || arg1_int > 7){
-            exit (1);
-        }
+        int arg0_int = reg_check(arg0);
+        int arg1_int = reg_check(arg1);
+        int arg2_int = reg_check(arg2);
         arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         I_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
       else if(!strcmp(opcode, "sw")){
         int opcode_int = 3;
-        int arg0_int;
-        int arg1_int;
-        int arg2_int;
-        if(isNumber(arg0)){
-            arg0_int = atoi(arg0);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg1)){
-            arg1_int = atoi(arg1);
-        }else{
-            exit(1);
-        }
-        if(arg0_int < 0 || arg0_int > 7){
-            exit (1);
-        }
-        if(arg1_int < 0 || arg1_int > 7){
-            exit (1);
-        }
+        int arg0_int = reg_check(arg0);
+        int arg1_int = reg_check(arg1);
+        int arg2_int = reg_check(arg2);
         arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         I_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
       else if(!strcmp(opcode, "beq")){
         int opcode_int = 4;
-        int arg0_int;
-        int arg1_int;
-        int arg2_int;
-        if(isNumber(arg0)){
-            arg0_int = atoi(arg0);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg1)){
-            arg1_int = atoi(arg1);
-        }else{
-            exit(1);
-        }
-        if(arg0_int < 0 || arg0_int > 7){
-            exit (1);
-        }
-        if(arg1_int < 0 || arg1_int > 7){
-            exit (1);
-        }
+        int arg0_int = reg_check(arg0);
+        int arg1_int = reg_check(arg1);
+        int arg2_int = reg_check(arg2);
         arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         I_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
       else if(!strcmp(opcode, "jalr")){
         int opcode_int = 5;
-        int arg0_int;
-        int arg1_int;
-        int arg2_int;
-        if(isNumber(arg0)){
-            arg0_int = atoi(arg0);
-        }else{
-            exit(1);
-        }
-        if(isNumber(arg1)){
-            arg1_int = atoi(arg1);
-        }else{
-            exit(1);
-        }
-        if(arg0_int < 0 || arg0_int > 7){
-            exit (1);
-        }
-        if(arg1_int < 0 || arg1_int > 7){
-            exit (1);
-        }
+        int arg0_int = reg_check(arg0);
+        int arg1_int = reg_check(arg1);
+        int arg2_int = reg_check(arg2);
         arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         J_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
@@ -350,7 +258,6 @@ int main(int argc, char **argv){
         exit(1);
       }
 
-      
     }
     //NOTE isnumber(0) for checking if the string is a just a number
     return(0);
