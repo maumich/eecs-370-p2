@@ -22,6 +22,11 @@ struct WorldWide{
     char home;
 };
 struct WorldWide Global[MAXLINELENGTH];
+struct WorldWide2{
+    char face[7];
+    char house;
+};
+struct WorldWide2 Earth[MAXLINELENGTH];
 int pc = 0;
 int Text = 0; // used in the header. The number of instruction above .fill
 int Data = 0; // used in the header. The number of .fill
@@ -167,16 +172,21 @@ int main(int argc, char **argv){
         num_of_labels++;
         if(isupper(label[0])){ //for finding and dealing with global
             strcpy(Global[Symbol_table].ID, label);
-            Symbol_table++;
             if(!strcmp(arg0, ".fill")){
                 Global[Symbol_table].home = 'D';
             }else{
                 Global[Symbol_table].home = 'T';
             }
+            Symbol_table++;
         }
       }
+      if(isupper(arg2[0])){ //checking to see if the Global is in arg2 
+        strcpy(Earth[Symbol_table].face, arg2);
+        Earth[Symbol_table].house = 'U';
+        Symbol_table++;
+      }
        linecounter++;
-       if(!strcmp(opcode, ".fill")){
+       if(strcmp(opcode, ".fill")){
          Text++; // for header
         }
     }
@@ -278,32 +288,39 @@ int main(int argc, char **argv){
     //printing the Symbol Table
     int fill_count = -1;
     int text_count = 0;
+    for(int y = 0; y < Symbol_table; y++){
+        for(int z =  0; z < Symbol_table; z++)
+            if(!strcmp(Global[y].ID, Earth[z].face)){ //getting raid of dups in Global from labals and arg2
+                Earth[z].house = Global[y].home;
+            }
+    }
     for(int h = 0; h < Symbol_table; h++){ //checks for global dups
         for(int k = h + 1; k < Symbol_table; k++){
             if(!strcmp(Global[h].ID, Global[k].ID)){
                 exit(1);// what do you do if you have dup Global*******
             }
         }
-       if(Global[h].home == "D"){
+       if(Global[h].home == 'D'){
         rewind(inFilePtr);
         while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
             if(!strcmp(arg0, ".fill")){
                 fill_count++;
             }
         }
-        fprintf(outFilePtr, "%s D %d\n", Global[h].home, fill_count);
+        fprintf(outFilePtr, "%s D %d\n", Global[h].ID, fill_count);
        }
-       if(!strcmp(Global[h].home, "T")){
+       else if(!strcmp(Global[h].ID, "T")){
            rewind(inFilePtr);
            while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
                 if(strcmp(arg0, ".fill")){
                  text_count++;
                 }
             }
-            fprintf(outFilePtr, "%s T %d\n", Global[h].home, fill_count);
+            fprintf(outFilePtr, "%s T %d\n", Global[h].ID, fill_count);
         }else{
-            fprintf(outFilePtr, "%s U 0\n", Global[h].home);
+            fprintf(outFilePtr, "%s U 0\n", Earth[h].face);
         }
+
     }
     
 
