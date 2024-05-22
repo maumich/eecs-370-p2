@@ -205,8 +205,7 @@ int main(int argc, char **argv){
         int opcode_int = 0;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = reg_check(arg2);
-        arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int); // for making arg2 a function
+        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int); // for making arg2 a function
         R_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
@@ -214,8 +213,7 @@ int main(int argc, char **argv){
         int opcode_int = 1;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = reg_check(arg2);
-        arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
+        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         R_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
@@ -223,8 +221,7 @@ int main(int argc, char **argv){
         int opcode_int = 2;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = reg_check(arg2);
-        arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
+        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         I_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
@@ -232,8 +229,7 @@ int main(int argc, char **argv){
         int opcode_int = 3;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = reg_check(arg2);
-        arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
+        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         I_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
@@ -241,8 +237,7 @@ int main(int argc, char **argv){
         int opcode_int = 4;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = reg_check(arg2);
-        arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
+        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         I_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
@@ -250,8 +245,7 @@ int main(int argc, char **argv){
         int opcode_int = 5;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = reg_check(arg2);
-        arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
+        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
         J_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
         pc++;
       }
