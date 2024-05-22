@@ -189,6 +189,14 @@ int main(int argc, char **argv){
        if(strcmp(opcode, ".fill")){
          Text++; // for header
         }
+        //Relcoation table
+        if(!strcmp(opcode, "lw")){
+
+        }else if(!strcmp(opcode, "sw")){
+
+        }else if(!strcmp(opcode, ".fill")){
+            
+        }
     }
     for(int a = 0; a < num_of_labels - 1; a++){ //error checking for dup labels
         for(int b = a + 1; b < num_of_labels; b++){
