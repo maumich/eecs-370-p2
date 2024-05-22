@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 //Every LC2K file will contain less than 1000 lines of assembly.
 #define MAXLINELENGTH 1000
@@ -15,6 +16,12 @@ struct mylabel{
     char name[7];
     int addy;
 };
+struct mylabel labels[MAXLINELENGTH];
+struct WorldWide{
+    char ID[7];
+    char home;
+};
+struct WorldWide Global[MAXLINELENGTH];
 int pc = 0;
 int Text = 0; // used in the header. The number of instruction above .fill
 int Data = 0; // used in the header. The number of .fill
@@ -39,7 +46,6 @@ int I_type_instruction(int opcode, int arg0, int arg1, int arg2, FILE*outfileptr
     arg0 = arg0 << 19; //regA
     arg1 = arg1 << 16; //regB
     //arg2 = arg2 >> 15; // 32 bit by deflaut needs to be 16
-    //need to sign mag arg2
     if(arg2 > 32767 || arg2 < -32768){ // if the offset is bigger than 16 bits (2^16)
         exit(1);
     }
@@ -64,7 +70,7 @@ int O_type_instruction(int opcode, FILE*outfileptr){
     return 0;
 }
 
-int reg_check(int arg){
+int reg_check(char *arg){
     int arg_num;
     if(isNumber(arg)){
             arg_num = atoi(arg);
@@ -76,7 +82,7 @@ int reg_check(int arg){
         }
     return arg_num;
 }
-struct mylabel labels[MAXLINELENGTH];
+
 
 int arg2_as_int(char *arg2, int num_of_labels, int opcode){
    /*three conditions:
@@ -159,6 +165,15 @@ int main(int argc, char **argv){
         strcpy(labels[num_of_labels].name, label);
         labels[num_of_labels].addy = linecounter;
         num_of_labels++;
+        if(isupper(label[0])){ //for finding and dealing with global
+            strcpy(Global[Symbol_table].ID, label);
+            Symbol_table++;
+            if(!strcmp(arg0, ".fill")){
+                Global[Symbol_table].home = 'D';
+            }else{
+                Global[Symbol_table].home = 'T';
+            }
+        }
       }
        linecounter++;
        if(!strcmp(opcode, ".fill")){
@@ -173,6 +188,7 @@ int main(int argc, char **argv){
         }
     }
     Data = linecounter - Text; //finding data for header
+    fprintf(outFilePtr, "%d %d %d %d\n", Text, Data, Symbol_table, Relocation_Table); //printing the header
     rewind(inFilePtr);
     while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) { //second pass
       if(!strcmp(opcode, "add")){
@@ -259,6 +275,43 @@ int main(int argc, char **argv){
       }
 
     }
+    //printing the Symbol Table
+    int fill_count = -1;
+    int text_count = 0;
+    for(int h = 0; h < Symbol_table; h++){ //checks for global dups
+        for(int k = h + 1; k < Symbol_table; k++){
+            if(!strcmp(Global[h].ID, Global[k].ID)){
+                exit(1);// what do you do if you have dup Global*******
+            }
+        }
+       if(Global[h].home == "D"){
+        rewind(inFilePtr);
+        while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
+            if(!strcmp(arg0, ".fill")){
+                fill_count++;
+            }
+        }
+        fprintf(outFilePtr, "%s D %d\n", Global[h].home, fill_count);
+       }
+       if(!strcmp(Global[h].home, "T")){
+           rewind(inFilePtr);
+           while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
+                if(strcmp(arg0, ".fill")){
+                 text_count++;
+                }
+            }
+            fprintf(outFilePtr, "%s T %d\n", Global[h].home, fill_count);
+        }else{
+            fprintf(outFilePtr, "%s U 0\n", Global[h].home);
+        }
+    }
+    
+
+    
+
+
+
+
     //NOTE isnumber(0) for checking if the string is a just a number
     return(0);
 }
