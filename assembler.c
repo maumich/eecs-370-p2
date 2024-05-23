@@ -171,32 +171,59 @@ int main(int argc, char **argv){
         labels[num_of_labels].addy = linecounter;
         num_of_labels++;
         if(isupper(label[0])){ //for finding and dealing with global
+          if(Symbol_table == 0){
             strcpy(Global[Symbol_table].ID, label);
-            if(!strcmp(arg0, ".fill")){
+            if(!strcmp(opcode, ".fill")){
                 Global[Symbol_table].home = 'D';
+                }else{
+                    Global[Symbol_table].home = 'T';
+                }
+              Symbol_table++;    
             }else{
-                Global[Symbol_table].home = 'T';
+            for(int q = 0; q < Symbol_table; q++){
+                if(!strcmp(label, Earth[q].face)){
+                    strcpy(Global[q].ID, Earth[q].face);
+                    if(!strcmp(opcode, ".fill")){
+                        Global[q].home = 'D';
+                    }else{
+                        Global[q].home = 'T';
+                    }
+                }
+                else if(strcmp(label, Earth[q].face)){
+                    strcpy(Global[Symbol_table].ID, label);
+                    if(!strcmp(opcode, ".fill")){
+                        Global[Symbol_table].home = 'D';
+                    }else{
+                        Global[Symbol_table].home = 'T';
+                    } 
+                  Symbol_table++;  
+                }
             }
-            Symbol_table++;
+           }
+           
         }
       }
       if(isupper(arg2[0])){ //checking to see if the Global is in arg2 
-        strcpy(Earth[Symbol_table].face, arg2);
-        Earth[Symbol_table].house = 'U';
+       for(int q = 0; q < Symbol_table + 1; q++){
+            if(strcmp(arg2, Global[q].ID)){
+              strcpy(Earth[Symbol_table].face, arg2);
+              Earth[Symbol_table].house = 'U'; 
+            }
+       }
         Symbol_table++;
       }
-       linecounter++;
+       
        if(strcmp(opcode, ".fill")){
          Text++; // for header
         }
-        //Relcoation table
-        if(!strcmp(opcode, "lw")){
-
-        }else if(!strcmp(opcode, "sw")){
-
-        }else if(!strcmp(opcode, ".fill")){
-            
+        if(!strcmp(opcode, "lw") && !isNumber(arg2)){
+           Relocation_Table++;
+        }else if(!strcmp(opcode, "sw") && !isNumber(arg2)){
+            Relocation_Table++;
+        }else if(!strcmp(opcode, ".fill") && !isNumber(arg0)){
+            Relocation_Table++;
         }
+        linecounter++;
     }
     for(int a = 0; a < num_of_labels - 1; a++){ //error checking for dup labels
         for(int b = a + 1; b < num_of_labels; b++){
@@ -290,39 +317,51 @@ int main(int argc, char **argv){
     //printing the Symbol Table
     int fill_count = -1;
     int text_count = 0;
-    for(int y = 0; y < Symbol_table; y++){
-        for(int z =  0; z < Symbol_table; z++)
-            if(!strcmp(Global[y].ID, Earth[z].face)){ //getting raid of dups in Global from labals and arg2
-                Earth[z].house = Global[y].home;
-            }
-    }
-    for(int h = 0; h < Symbol_table; h++){ //checks for global dups
-        for(int k = h + 1; k < Symbol_table; k++){
-            if(!strcmp(Global[h].ID, Global[k].ID)){
-                exit(1);// what do you do if you have dup Global*******
-            }
-        }
+    for(int h = 0; h < Symbol_table; h++){
        if(Global[h].home == 'D'){
         rewind(inFilePtr);
         while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
-            if(!strcmp(arg0, ".fill")){
+            if(!strcmp(opcode, ".fill")){
                 fill_count++;
+            }
+            if(!strcmp(Global[h].ID, label)){
+                break;
             }
         }
         fprintf(outFilePtr, "%s D %d\n", Global[h].ID, fill_count);
        }
-       else if(!strcmp(Global[h].ID, "T")){
+       else if(Global[h].home == 'T'){
            rewind(inFilePtr);
            while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
                 if(strcmp(arg0, ".fill")){
                  text_count++;
                 }
+                if(!strcmp(Global[h].ID, label)){
+                break;
+            }
             }
             fprintf(outFilePtr, "%s T %d\n", Global[h].ID, fill_count);
         }else{
             fprintf(outFilePtr, "%s U 0\n", Earth[h].face);
         }
 
+    }
+    int lineCNT = 0;
+    int fillins = 0;
+    rewind(inFilePtr);
+    while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){//third pass for setting relcation tabel
+        //Relcoation table
+        if(!strcmp(opcode, "lw") && !isNumber(arg2)){
+            fprintf(outFilePtr, "%d lw %s\n", lineCNT, arg2);
+        }else if(!strcmp(opcode, "sw") && !isNumber(arg2)){
+            fprintf(outFilePtr, "%d sw %s\n", lineCNT, arg2);
+        }else if(!strcmp(opcode, ".fill") && !isNumber(arg0)){
+            fprintf(outFilePtr, "%d .fill %s\n", fillins, arg0);
+        }
+        if(!strcmp(opcode, ".fill")){
+            fillins++;
+        }
+        lineCNT++;
     }
     
 
