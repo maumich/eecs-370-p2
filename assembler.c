@@ -60,7 +60,7 @@ int I_type_instruction(int opcode, int arg0, int arg1, int arg2, FILE*outfileptr
     return 0;
 }
 
-int J_type_instruction(int opcode, int arg0, int arg1, int arg2, FILE*outfileptr){
+int J_type_instruction(int opcode, int arg0, int arg1, FILE*outfileptr){
     opcode = opcode << 22;
     arg0 = arg0 << 19; //regA
     arg1 = arg1 << 16;
@@ -117,16 +117,24 @@ int arg2_as_int(char *arg2, int num_of_labels, int opcode){
                 flippy = false;
                 return offset + arg0_int; 
             }
+            for(int i = 0; i < Symbol_table; i++){
+                if(!strcmp(Earth[i].face, arg2)){
+                    arg2_int = 0;
+                    flippy = false;
+                    break;
+                }
+            }
             for(int i = 0; i < num_of_labels; i++){
                 if(!strcmp(labels[i].name, arg2)){
                     arg2_int = labels[i].addy;
+                    flippy = false;
                     break;
                 }
             
             }
-            flippy = false;
+            
         }
-        if(flippy == true || arg2 < 0){ //undefine label
+        if(flippy == true || arg2_int < 0){ //undefine label
             exit(1);
         }
     return arg2_int;
@@ -280,8 +288,7 @@ int main(int argc, char **argv){
         int opcode_int = 5;
         int arg0_int = reg_check(arg0);
         int arg1_int = reg_check(arg1);
-        int arg2_int = arg2_as_int(arg2, num_of_labels, opcode_int);
-        J_type_instruction(opcode_int, arg0_int, arg1_int, arg2_int, outFilePtr);
+        J_type_instruction(opcode_int, arg0_int, arg1_int, outFilePtr);
         pc++;
       }
       else if(!strcmp(opcode, "halt")){
@@ -316,7 +323,7 @@ int main(int argc, char **argv){
     }
     //printing the Symbol Table
     int fill_count = -1;
-    int text_count = 0;
+    int text_count = -1;
     for(int h = 0; h < Symbol_table; h++){
        if(Global[h].home == 'D'){
         rewind(inFilePtr);
@@ -340,7 +347,7 @@ int main(int argc, char **argv){
                 break;
             }
             }
-            fprintf(outFilePtr, "%s T %d\n", Global[h].ID, fill_count);
+            fprintf(outFilePtr, "%s T %d\n", Global[h].ID, text_count);
         }else{
             fprintf(outFilePtr, "%s U 0\n", Earth[h].face);
         }
@@ -364,12 +371,6 @@ int main(int argc, char **argv){
         lineCNT++;
     }
     
-
-    
-
-
-
-
     //NOTE isnumber(0) for checking if the string is a just a number
     return(0);
 }
