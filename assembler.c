@@ -93,6 +93,7 @@ int arg2_as_int(char *arg2, int num_of_labels, int opcode){
     3) arg2 is a label and we are not dealing with a branch*/
     int arg2_int = -2;
     bool flippy = true;
+    bool GlobalFind = false;
     if(isNumber(arg2)){
            arg2_int = atoi(arg2); 
            flippy = false;
@@ -114,20 +115,25 @@ int arg2_as_int(char *arg2, int num_of_labels, int opcode){
                 flippy = false;
                 return offset + arg0_int; 
             }
-            for(int i = 1; i < Symbol_table + 1; i++){
-                if(Global[i].home == 'U'){
-                    arg2_int = 0;
-                    flippy = false;
-                    break;
+            if(isupper(arg2[0])){
+                for(int i = 1; i < Symbol_table + 1; i++){
+                    if(Global[i].home == 'U' && !strcmp(Global[i].ID, arg2)){
+                        arg2_int = 0;
+                        flippy = false;
+                        GlobalFind = true;
+                        break;
+                    }
                 }
             }
-            for(int i = 0; i < num_of_labels; i++){
-                if(!strcmp(labels[i].name, arg2)){
-                    arg2_int = labels[i].addy;
-                    flippy = false;
-                    break;
+            if(!GlobalFind){
+                for(int i = 0; i < num_of_labels; i++){
+                    if(!strcmp(labels[i].name, arg2)){
+                        arg2_int = labels[i].addy;
+                        flippy = false;
+                        break;
+                    }
+                
                 }
-            
             }
             
         }
@@ -205,7 +211,17 @@ int main(int argc, char **argv){
                     break; 
                 }
             }
-            
+        }
+        if(isupper(arg0[0])){ //checking to see if the Global is in arg2 ('U')
+            for(int q = 0; q < Symbol_table + 1;){
+                if(strcmp(arg0, Global[q].ID)){
+                    Symbol_table++;
+                    strcpy(Global[Symbol_table].ID, arg0);
+                    Global[Symbol_table].home = 'U';
+                    q++;
+                    break; 
+                }
+            }
         }
         if(label[0] != '\0'){ //Normal label checking from p1. Globals also go here
             strcpy(labels[num_of_labels].name, label);
@@ -232,20 +248,34 @@ int main(int argc, char **argv){
             }
         }
     }
-    for(int q = 1; q < Symbol_table; q++){
-        for(int u = q + 1; u < Symbol_table + 1; u++){
-            if(!strcmp(Global[q].ID, Global[u].ID)){ //Fixing if the Global is 'U' to 'D' or 'T' 
-                if(!strcmp(Global[q].op, ".fill")){
-                    Global[q].home = 'D';
-                }else{
-                    Global[q].home = 'T';
+    int ogbol = Symbol_table;
+    for(int z = 0; z < ogbol; z++){
+        for(int q = 1; q < Symbol_table; q++){
+            for(int u = q + 1; u < Symbol_table + 1; u++){
+                if(!strcmp(Global[q].ID, Global[u].ID)){ //Fixing if the Global is 'U' to 'D' or 'T' 
+                    if(Global[q].home == 'U'){
+                        Global[q].home = Global[u].home;
+                        strcpy(Global[q].ID, Global[u].ID);
+                        strcpy(Global[q].op, Global[u].op);
+                        if(!strcmp(Global[u].op, ".fill")){
+                            Global[u].home = 'D';
+                        }else{
+                            Global[u].home = 'T';
+                        }
+                    }else{
+                    if(!strcmp(Global[q].op, ".fill")){
+                            Global[q].home = 'D';
+                        }else{
+                            Global[q].home = 'T';
+                        } 
+                    }
+                    for(int i = u; i < Symbol_table; i++){
+                        strcpy(Global[i].ID, Global[i + 1].ID);
+                        strcpy(Global[i].op, Global[i + 1].op);
+                        Global[i].home = Global[i + 1].home;
+                    }
+                    Symbol_table--;
                 }
-                for(int i = u; i < Symbol_table; i++){
-                    strcpy(Global[i].ID, Global[i + 1].ID);
-                    strcpy(Global[i].op, Global[i + 1].op);
-                    Global[i].home = Global[i + 1].home;
-                }
-                Symbol_table--;
             }
         }
     }
