@@ -17,16 +17,14 @@ struct mylabel{
     int addy;
 };
 struct mylabel labels[MAXLINELENGTH];
+
 struct WorldWide{
     char ID[7];
     char home;
+    char op[7];
 };
 struct WorldWide Global[MAXLINELENGTH];
-struct WorldWide2{
-    char face[7];
-    char house;
-};
-struct WorldWide2 Earth[MAXLINELENGTH];
+
 int pc = 0;
 int Text = 0; // used in the header. The number of instruction above .fill
 int Data = 0; // used in the header. The number of .fill
@@ -88,7 +86,6 @@ int reg_check(char *arg){
     return arg_num;
 }
 
-
 int arg2_as_int(char *arg2, int num_of_labels, int opcode){
    /*three conditions:
     1) arg2 is a number
@@ -117,8 +114,8 @@ int arg2_as_int(char *arg2, int num_of_labels, int opcode){
                 flippy = false;
                 return offset + arg0_int; 
             }
-            for(int i = 0; i < Symbol_table; i++){
-                if(!strcmp(Earth[i].face, arg2)){
+            for(int i = 1; i < Symbol_table + 1; i++){
+                if(Global[i].home == 'U'){
                     arg2_int = 0;
                     flippy = false;
                     break;
@@ -169,58 +166,53 @@ int main(int argc, char **argv){
         exit(1);
     }
 
-    /* here is an example for how to use readAndParse to read a line from
-        inFilePtr */
     int linecounter = 0;
     int num_of_labels = 0;
     while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) { //first pass
-      if(label[0] != '\0'){
-        strcpy(labels[num_of_labels].name, label);
-        labels[num_of_labels].addy = linecounter;
-        num_of_labels++;
         if(isupper(label[0])){ //for finding and dealing with global
-          if(Symbol_table == 0){
-            strcpy(Global[Symbol_table].ID, label);
-            if(!strcmp(opcode, ".fill")){
-                Global[Symbol_table].home = 'D';
+            if(Symbol_table == 0){//for the first Globla found
+                Symbol_table++; 
+                strcpy(Global[Symbol_table].ID, label);
+                if(!strcmp(opcode, ".fill")){
+                    Global[Symbol_table].home = 'D';
+                    strcpy(Global[Symbol_table].op, opcode);
                 }else{
                     Global[Symbol_table].home = 'T';
+                    strcpy(Global[Symbol_table].op, opcode);
                 }
-              Symbol_table++;    
-            }else{
-            for(int q = 0; q < Symbol_table; q++){
-                if(!strcmp(label, Earth[q].face)){
-                    strcpy(Global[q].ID, Earth[q].face);
-                    if(!strcmp(opcode, ".fill")){
-                        Global[q].home = 'D';
-                    }else{
-                        Global[q].home = 'T';
-                    }
-                }
-                else if(strcmp(label, Earth[q].face)){
+            }else{//if not first
+                if(strcmp(Global[Symbol_table].ID, label)){//if not first and not 'U'
+                    Symbol_table++; 
                     strcpy(Global[Symbol_table].ID, label);
                     if(!strcmp(opcode, ".fill")){
                         Global[Symbol_table].home = 'D';
+                        strcpy(Global[Symbol_table].op, opcode);
                     }else{
                         Global[Symbol_table].home = 'T';
+                        strcpy(Global[Symbol_table].op, opcode);
                     } 
-                  Symbol_table++;  
                 }
             }
-           }
-           
+            
         }
-      }
-      if(isupper(arg2[0])){ //checking to see if the Global is in arg2 
-       for(int q = 0; q < Symbol_table + 1; q++){
-            if(strcmp(arg2, Global[q].ID)){
-              strcpy(Earth[Symbol_table].face, arg2);
-              Earth[Symbol_table].house = 'U'; 
+        if(isupper(arg2[0])){ //checking to see if the Global is in arg2 ('U')
+            for(int q = 0; q < Symbol_table + 1;){
+                if(strcmp(arg2, Global[q].ID)){
+                    Symbol_table++;
+                    strcpy(Global[Symbol_table].ID, arg2);
+                    Global[Symbol_table].home = 'U';
+                    q++;
+                    break; 
+                }
             }
-       }
-        Symbol_table++;
-      }
-       
+            
+        }
+        if(label[0] != '\0'){ //Normal label checking from p1. Globals also go here
+            strcpy(labels[num_of_labels].name, label);
+            labels[num_of_labels].addy = linecounter;
+            num_of_labels++;
+        }
+      
        if(strcmp(opcode, ".fill")){
          Text++; // for header
         }
@@ -233,14 +225,32 @@ int main(int argc, char **argv){
         }
         linecounter++;
     }
-    for(int a = 0; a < num_of_labels - 1; a++){ //error checking for dup labels
+    for(int a = 0; a < num_of_labels - 1; a++){ //error checking for dup labels(p1)
         for(int b = a + 1; b < num_of_labels; b++){
             if(!strcmp(labels[a].name, labels[b].name)){
                 exit(1);
             }
         }
     }
+    for(int q = 1; q < Symbol_table; q++){
+        for(int u = q + 1; u < Symbol_table + 1; u++){
+            if(!strcmp(Global[q].ID, Global[u].ID)){ //Fixing if the Global is 'U' to 'D' or 'T' 
+                if(!strcmp(Global[q].op, ".fill")){
+                    Global[q].home = 'D';
+                }else{
+                    Global[q].home = 'T';
+                }
+                for(int i = u; i < Symbol_table; i++){
+                    strcpy(Global[i].ID, Global[i + 1].ID);
+                    strcpy(Global[i].op, Global[i + 1].op);
+                    Global[i].home = Global[i + 1].home;
+                }
+                Symbol_table--;
+            }
+        }
+    }
     Data = linecounter - Text; //finding data for header
+    //Symbol_table = Symbol_table - 2;
     fprintf(outFilePtr, "%d %d %d %d\n", Text, Data, Symbol_table, Relocation_Table); //printing the header
     rewind(inFilePtr);
     while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)) { //second pass
@@ -324,8 +334,9 @@ int main(int argc, char **argv){
     //printing the Symbol Table
     int fill_count = -1;
     int text_count = -1;
-    for(int h = 0; h < Symbol_table; h++){
+    for(int h = 1; h < Symbol_table + 1; h++){
        if(Global[h].home == 'D'){
+        fill_count = -1;
         rewind(inFilePtr);
         while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
             if(!strcmp(opcode, ".fill")){
@@ -338,6 +349,7 @@ int main(int argc, char **argv){
         fprintf(outFilePtr, "%s D %d\n", Global[h].ID, fill_count);
        }
        else if(Global[h].home == 'T'){
+           text_count = -1;
            rewind(inFilePtr);
            while(readAndParse(inFilePtr, label, opcode, arg0, arg1, arg2)){
                 if(strcmp(arg0, ".fill")){
@@ -349,7 +361,7 @@ int main(int argc, char **argv){
             }
             fprintf(outFilePtr, "%s T %d\n", Global[h].ID, text_count);
         }else{
-            fprintf(outFilePtr, "%s U 0\n", Earth[h].face);
+            fprintf(outFilePtr, "%s U 0\n", Global[h].ID);
         }
 
     }
