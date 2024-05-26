@@ -148,6 +148,18 @@ int main(int argc, char *argv[]) {
 	
 
 	//file[0].data will give you the array for all the data (5 for the .fill)
-	
+	CombinedFiles combined;
+	int num_files = argc - 2;
+	for(int i = 0; i < num_files; i++){ // for putting all Globals in the same struck
+		for(int j = 0; j < num_files; j++){
+			if(files[i].symbolTable[j].location != 'U'){
+				if(strcmp(combined.symbolTable[i].label, files[i].symbolTable[j].label)){
+					strcpy(combined.symbolTable[i].label, files[i].symbolTable[j].label);
+					combined.symbolTable[i].location, files[i].symbolTable[j].location;
+					combined.symbolTable[i].offset, files[i].symbolTable[j].offset;
+				}
+			}
+		}
+	}
 
 } // main
