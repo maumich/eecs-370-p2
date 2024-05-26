@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #define MAXSIZE 500
 #define MAXLINELENGTH 1000
@@ -145,6 +146,10 @@ int main(int argc, char *argv[]) {
 	// *** INSERT YOUR CODE BELOW ***
 	//    Begin the linking process
 	//    Happy coding!!!
+	struct inone{
+		char list;
+	};
+	struct inone scroll[MAXLINELENGTH];
 	
 
 	//file[0].data will give you the array for all the data (5 for the .fill)
@@ -161,5 +166,13 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
+
+	int list_count = 0;
+	bool file0 = true, file1 = true, file2 = true, file3 = true, file4 = true, file5 = true;
+	while(file0){
+		
+	}
+
+
 
 } // main
