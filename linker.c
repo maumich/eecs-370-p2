@@ -18,7 +18,9 @@ typedef struct RelocationTableEntry RelocationTableEntry;
 typedef struct CombinedFiles CombinedFiles;
 
 struct inone{
-	char list[MAXLINELENGTH];
+	char list[50];
+	char label[7];
+	int file;
 };
 struct inone scroll[MAXLINELENGTH];
 
@@ -147,53 +149,58 @@ int main(int argc, char *argv[]) {
 		}
 		fclose(inFilePtr);
 	} // end reading files
-
-	// *** INSERT YOUR CODE BELOW ***
-	//    Begin the linking process
-	//    Happy coding!!!
-	
 	
 
 	//file[0].data will give you the array for all the data (5 for the .fill)
 	CombinedFiles combined;
 	int num_files = argc - 2;
+	int tableSize = 0;
 	for(int i = 0; i < num_files; i++){ // for putting all Globals in the same struck
-		for(int j = 0; j < num_files; j++){
+		for(int j = 0; j < files[i].symbolTableSize; j++){
 			if(files[i].symbolTable[j].location != 'U'){
-				if(strcmp(combined.symbolTable[i].label, files[i].symbolTable[j].label)){
-					strcpy(combined.symbolTable[i].label, files[i].symbolTable[j].label);
-					combined.symbolTable[i].location = files[i].symbolTable[j].location;
-					combined.symbolTable[i].offset = files[i].symbolTable[j].offset;
+				if(strcmp(combined.symbolTable[j].label, files[i].symbolTable[j].label)){
+					strcpy(combined.symbolTable[tableSize].label, files[i].symbolTable[j].label);
+					combined.symbolTable[tableSize].location = files[i].symbolTable[j].location;
+					combined.symbolTable[tableSize].offset = files[i].symbolTable[j].offset;
+					tableSize++;
 				}
 			}
 		}
 	}
-
+	// reloction table
+	for(int i = 0; i < num_files; i++){ // for putting all Globals in the same struck
+		for(int j = 0; j < files[i].relocationTableSize; j++){
+			strcpy(combined.relocTable[i].inst, files[i].relocTable[j].inst);
+			strcpy(combined.relocTable[i].label, files[i].relocTable[j].label);
+			combined.relocTable[i].file = files[i].relocTable[j].file;
+		}
+	}
 	int list_count = 0;
+	//int current_file_line = 0;
 	int file_tracker = 0;
 	int text_tracker = 0;
 	int data_tracker = 0;
-	for(int i = 0; i < num_files; i++){
+	for(int i = 0; i < num_files; i++){ //putting the text in order
 		file_tracker = 0;
 		text_tracker = 0;
-		while(file_tracker < files[i].textSize){ // file 0 text
+		while(file_tracker < files[i].textSize){
 			sprintf(scroll[list_count].list, "%d", files[i].text[text_tracker]);
+			scroll[list_count].file = i;
 			list_count++;
 			file_tracker++;
 			text_tracker++;
 		}
-		
 	}
-	for(int j = 0; j < num_files; j++){
+	for(int j = 0; j < num_files; j++){ // putting the data in order
 		file_tracker = 0;
 		data_tracker = 0;
 		while(file_tracker < files[j].dataSize){
 			sprintf(scroll[list_count].list, "%d", files[j].data[data_tracker]);
+			scroll[list_count].file = i;
 			list_count++;
 			file_tracker++;
 			data_tracker++;
 		}
-		
 	}
 
 } // main
