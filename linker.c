@@ -17,6 +17,11 @@ typedef struct SymbolTableEntry SymbolTableEntry;
 typedef struct RelocationTableEntry RelocationTableEntry;
 typedef struct CombinedFiles CombinedFiles;
 
+struct inone{
+	char list[MAXLINELENGTH];
+};
+struct inone scroll[MAXLINELENGTH];
+
 struct SymbolTableEntry {
 	char label[7];
 	char location;
@@ -146,10 +151,7 @@ int main(int argc, char *argv[]) {
 	// *** INSERT YOUR CODE BELOW ***
 	//    Begin the linking process
 	//    Happy coding!!!
-	struct inone{
-		char list;
-	};
-	struct inone scroll[MAXLINELENGTH];
+	
 	
 
 	//file[0].data will give you the array for all the data (5 for the .fill)
@@ -160,19 +162,38 @@ int main(int argc, char *argv[]) {
 			if(files[i].symbolTable[j].location != 'U'){
 				if(strcmp(combined.symbolTable[i].label, files[i].symbolTable[j].label)){
 					strcpy(combined.symbolTable[i].label, files[i].symbolTable[j].label);
-					combined.symbolTable[i].location, files[i].symbolTable[j].location;
-					combined.symbolTable[i].offset, files[i].symbolTable[j].offset;
+					combined.symbolTable[i].location = files[i].symbolTable[j].location;
+					combined.symbolTable[i].offset = files[i].symbolTable[j].offset;
 				}
 			}
 		}
 	}
 
 	int list_count = 0;
-	bool file0 = true, file1 = true, file2 = true, file3 = true, file4 = true, file5 = true;
-	while(file0){
+	int file_tracker = 0;
+	int text_tracker = 0;
+	int data_tracker = 0;
+	for(int i = 0; i < num_files; i++){
+		file_tracker = 0;
+		text_tracker = 0;
+		while(file_tracker < files[i].textSize){ // file 0 text
+			sprintf(scroll[list_count].list, "%d", files[i].text[text_tracker]);
+			list_count++;
+			file_tracker++;
+			text_tracker++;
+		}
 		
 	}
-
-
+	for(int j = 0; j < num_files; j++){
+		file_tracker = 0;
+		data_tracker = 0;
+		while(file_tracker < files[j].dataSize){
+			sprintf(scroll[list_count].list, "%d", files[j].data[data_tracker]);
+			list_count++;
+			file_tracker++;
+			data_tracker++;
+		}
+		
+	}
 
 } // main
