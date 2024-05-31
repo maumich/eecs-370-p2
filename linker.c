@@ -168,7 +168,7 @@ int main(int argc, char *argv[]) {
 			strcpy(combined.symbolTable[tableSize].label, files[i].symbolTable[j].label);
 			combined.symbolTable[tableSize].location = files[i].symbolTable[j].location;
 			combined.symbolTable[tableSize].offset = files[i].symbolTable[j].offset;
-			combined.symbolTable[tableSize].file = files[i].symbolTable[j].file;
+			combined.symbolTable[tableSize].file = i;
 			tableSize++;
 		}
 	}
@@ -177,12 +177,20 @@ int main(int argc, char *argv[]) {
 		for(int q = 0; q < tableSize; q++){
 			for(int u = q + 1; u < tableSize + 1; u++){
 				if(!strcmp(combined.symbolTable[q].label, combined.symbolTable[u].label)){
-					if(combined.symbolTable[q].location == 'U'){
+					if((combined.symbolTable[q].location == 'D' || combined.symbolTable[q].location == 'T')
+					&& (combined.symbolTable[u].location == 'D' || combined.symbolTable[u].location == 'T')){
+						exit(1);
+					}
+					if(!strcmp(combined.symbolTable[q].label, "Stack") && (combined.symbolTable[q].location == 'D'
+																		|| combined.symbolTable[q].location == 'T')){
+						exit(1);
+					}
+					if(combined.symbolTable[q].location == 'U' && strcmp(combined.symbolTable[q].label, "Stack")){
 						strcpy(combined.symbolTable[q].label, combined.symbolTable[u].label);
 						combined.symbolTable[q].location = combined.symbolTable[u].location;
 						combined.symbolTable[q].offset = combined.symbolTable[u].offset;
-						combined.symbolTable[q].file = combined.symbolTable[q].file;
-					}
+						combined.symbolTable[q].file = combined.symbolTable[u].file;
+					}// NEED THE ELSE HERE FOR IF Q IS NOT U (Might not need)
 					for(int i = u; i < tableSize; i++){
 						strcpy(combined.symbolTable[i].label, combined.symbolTable[i + 1].label);
 						combined.symbolTable[i].location = combined.symbolTable[i + 1].location;
@@ -392,6 +400,7 @@ int main(int argc, char *argv[]) {
 					}
 					if(breaks){ break; }
 				}
+				//Stack = totalsize
 				// this is how to find offset
 				// add the text file size to the data soze that the lable is at to find the offset
 				// than 9 - 6 = 3. add the 3 to the value given in the obj (for the first one)
