@@ -169,6 +169,9 @@ int main(int argc, char *argv[]) {
 			combined.symbolTable[tableSize].location = files[i].symbolTable[j].location;
 			combined.symbolTable[tableSize].offset = files[i].symbolTable[j].offset;
 			combined.symbolTable[tableSize].file = i;
+			if(!strcmp(combined.symbolTable[tableSize].label, "Stack") && (combined.symbolTable[tableSize].location == 'D' || combined.symbolTable[tableSize].location == 'T')){
+				exit(1);
+			}
 			tableSize++;
 		}
 	}
@@ -181,16 +184,12 @@ int main(int argc, char *argv[]) {
 					&& (combined.symbolTable[u].location == 'D' || combined.symbolTable[u].location == 'T')){
 						exit(1);
 					}
-					if(!strcmp(combined.symbolTable[q].label, "Stack") && (combined.symbolTable[q].location == 'D'
-																		|| combined.symbolTable[q].location == 'T')){
-						exit(1);
-					}
-					if(combined.symbolTable[q].location == 'U' && strcmp(combined.symbolTable[q].label, "Stack")){
+					if(combined.symbolTable[q].location == 'U'){
 						strcpy(combined.symbolTable[q].label, combined.symbolTable[u].label);
 						combined.symbolTable[q].location = combined.symbolTable[u].location;
 						combined.symbolTable[q].offset = combined.symbolTable[u].offset;
 						combined.symbolTable[q].file = combined.symbolTable[u].file;
-					}// NEED THE ELSE HERE FOR IF Q IS NOT U (Might not need)
+					}
 					for(int i = u; i < tableSize; i++){
 						strcpy(combined.symbolTable[i].label, combined.symbolTable[i + 1].label);
 						combined.symbolTable[i].location = combined.symbolTable[i + 1].location;
@@ -261,156 +260,237 @@ int main(int argc, char *argv[]) {
 		sumDataFiles = sumDataFiles + files[x].dataSize;
 	}
 	int totalsize = sumDataFiles + sumTextFiles;
-	//updating the relocation table
-	bool breaks = false;
-	int offset;
-	int datasize = 0;
-	int right_offsetr = 0;
-	int saved_line;
-	int rightline = 0;
-	int image = 0;
-	for(int r = 0; r < relocSIZE; r++){
-		breaks = false;
-		int current_line = combined.relocTable[r].offset;
-		int current_file = combined.relocTable[r].file;
-		int line_counter = 0;
-		int fill_line = 0;
-		if(isupper(combined.relocTable[r].label[0])){
-			int globalline = 0;
-			bool symbolB = false;
-			image = 0;
-			for(int a = 0; a < symbolsize; a++){
-				if(!strcmp(combined.relocTable[r].label, combined.symbolTable[image].label)){
-					// just need the number from image, nothing else to do here
-					symbolB = true;
+	bool stop = false;
+	if(num_files == 1){
+		stop = true;
+	}
+	if(!stop){
+		//updating the relocation table
+		bool breaks = false;
+		bool stack = true;
+		int offset;
+		int datasize = 0;
+		int right_offsetr = 0;
+		int saved_line;
+		int rightline = 0;
+		int globalline = 0;
+		int image = 0;
+		for(int r = 0; r < relocSIZE; r++){
+			breaks = false;
+			stack = false;
+			int current_line = combined.relocTable[r].offset;
+			int current_file = combined.relocTable[r].file;
+			int line_counter = 0;
+			int fill_line = 0;
+			if(isupper(combined.relocTable[r].label[0])){
+				globalline = 0;
+				bool symbolB = false;
+				image = 0;
+				for(int a = 0; a < symbolsize; a++){
+					if(!strcmp(combined.relocTable[r].label, combined.symbolTable[image].label)){
+						// just need the number from image, nothing else to do here
+						symbolB = true;
+					}
+					if(symbolB){ break; }
+					image++;
 				}
-				if(symbolB){ break; }
-				image++;
-			}
-			if(!strcmp(combined.relocTable[r].inst, ".fill")){
-				breaks = false;
-				line_counter = sumTextFiles;
-				for(int i = 0; i < num_files; i++){
-					for(int j = 0; j < files[i].dataSize; j++){
-						if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
-							saved_line = line_counter;
+				if(!strcmp(combined.relocTable[r].label, "Stack")){
+					stack = true;
+					if(!strcmp(combined.relocTable[r].inst, ".fill")){
+						breaks = false;
+						line_counter = sumTextFiles;
+						for(int i = 0; i < num_files; i++){
+							for(int j = 0; j < files[i].dataSize; j++){
+								if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
+									saved_line = line_counter;
+									line_counter = sumTextFiles;
+									while(!breaks){
+											if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
+												// this if statment will tell us the line the global is define on
+												rightline = globalline;
+												breaks = true;
+											}
+										if(breaks){ break; }
+										line_counter++;
+										globalline++;
+									}
+								}
+							line_counter++;	
+							if(breaks){ break; }
+							}
+							if(breaks){ break; }
+						}
+					scroll[saved_line].number = totalsize;
+					}else{
+						breaks = false;
+						for(int b = 0; b < sumTextFiles; b++){
+							if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
+								rightline = line_counter;
+								breaks = true;
+							}
+						if(breaks){ break; }
+						line_counter++;
+						}
+						breaks = false;
+						line_counter = 0;
+						for(int j = 0; j < totalsize; j++){
+							if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
+								offset = scroll[line_counter].number & 0XFFFF;
+								saved_line = line_counter;
+								fill_line = sumTextFiles;
+								breaks = true;
+							}	
+							line_counter++;
+							if(breaks){ break; }
+						}
+						//right_offsetr = (sumTextFiles + rightline) - offset;
+						scroll[saved_line].number = scroll[saved_line].number + totalsize;
+					}
+				}
+				if(!stack){
+					if(!strcmp(combined.relocTable[r].inst, ".fill")){
+						breaks = false;
+						line_counter = sumTextFiles;
+						for(int i = 0; i < num_files; i++){
+							for(int j = 0; j < files[i].dataSize; j++){
+								if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
+									saved_line = line_counter;
+									line_counter = sumTextFiles;
+									for(int d = 0; d < num_files; d++){
+										for(int e = 0; e < files[d].dataSize; e++){
+											if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
+												// this if statment will tell us the line the global is define on
+												rightline = globalline;
+												breaks = true;
+											}
+										if(breaks){ break; }
+											line_counter++;
+											globalline++;
+										}
+									if(breaks){ break; }
+									}
+								}
+							line_counter++;	
+							if(breaks){ break; }
+							}
+							if(breaks){ break; }
+						}
+						right_offsetr = (sumTextFiles + rightline)/* - offset*/;
+						scroll[saved_line].number = right_offsetr;
+					}else{
+						if(combined.symbolTable[image].location == 'T'){
+							breaks = false;
+							for(int b = 0; b < sumTextFiles; b++){
+								if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
+									rightline = line_counter;
+									breaks = true;
+								}
+								if(breaks){ break; }
+								line_counter++;
+							}
+						}else{ // == 'D'
 							line_counter = sumTextFiles;
+							breaks = false;
 							for(int d = 0; d < num_files; d++){
 								for(int e = 0; e < files[d].dataSize; e++){
 									if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
 										// this if statment will tell us the line the global is define on
-										rightline = globalline;
+										rightline = globalline + sumTextFiles;
 										breaks = true;
 									}
-								if(breaks){ break; }
+									if(breaks){ break; }
 									line_counter++;
 									globalline++;
 								}
-							  if(breaks){ break; }
+								if(breaks){ break; }
 							}
 						}
-					  line_counter++;	
-					  if(breaks){ break; }
-					}
-					if(breaks){ break; }
-				}
-				right_offsetr = (sumTextFiles + rightline) - offset;
-				scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
-			}else{
-				if(combined.symbolTable[image].location == 'T'){
-					breaks = false;
-					for(int b = 0; b < sumTextFiles; b++){
-						if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
-							rightline = line_counter;
-							breaks = true;
-						}
-						if(breaks){ break; }
-						line_counter++;
-					}
-				}else{ // == 'D'
-					line_counter = sumTextFiles;
-					breaks = false;
-					for(int d = 0; d < num_files; d++){
-						for(int e = 0; e < files[d].dataSize; e++){
-							if(scroll[line_counter].line == combined.symbolTable[image].offset && scroll[line_counter].file == combined.symbolTable[image].file){
-								// this if statment will tell us the line the global is define on
-								rightline = globalline;
+						breaks = false;
+						line_counter = 0;
+						for(int j = 0; j < totalsize; j++){
+							if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
+								offset = scroll[line_counter].number & 0XFFFF;
+								saved_line = line_counter;
+								fill_line = sumTextFiles;
 								breaks = true;
-							}
-							if(breaks){ break; }
+							}	
 							line_counter++;
-							globalline++;
-						}
-						if(breaks){ break; }
+							if(breaks){ break; }
+						}				
+						right_offsetr = (/*sumTextFiles +*/ rightline) - offset;//check this line
+						scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
 					}
 				}
-				breaks = false;
-				line_counter = 0;
-				for(int j = 0; j < totalsize; j++){
-					if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
-						offset = scroll[line_counter].number & 0XFFFF;
-						saved_line = line_counter;
-						fill_line = sumTextFiles;
-						breaks = true;
-					}	
-					line_counter++;
-					if(breaks){ break; }
-				}
-				right_offsetr = (sumTextFiles + rightline) - offset;//check this line
-				//datasize++;
-				scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
-			}
-		}else{
-			if(!strcmp(combined.relocTable[r].inst, ".fill")){
-				line_counter = sumTextFiles;
-				for(int i = 0; i < num_files; i++){
-					for(int j = 0; j < files[i].dataSize; j++){
-						if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
-							saved_line = line_counter;
-							for(int x = 0; x < num_files; x++){
-								for(int y = 0; y < files[x].textSize; y++){
+			}else{
+				if(!strcmp(combined.relocTable[r].inst, ".fill")){
+					line_counter = sumTextFiles;
+					for(int i = 0; i < num_files; i++){
+						for(int j = 0; j < files[i].dataSize; j++){
+							if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
+								saved_line = line_counter;
+								fill_line = 0;
+								for(int l = 0; l < current_file; l++){
+									fill_line += files[l].textSize;
+								}
+								breaks = false;
+								while(!breaks){
 									if(scroll[fill_line].line == current_line && scroll[fill_line].file == current_file){
 										offset = fill_line - 1;
 										breaks = true;
 									}
 									fill_line++;
-									if(breaks){ break; }
 								}
-								if(breaks){ break; }
 							}
+							line_counter++;	
+							if(breaks){ break; }
 						}
-						line_counter++;	
 						if(breaks){ break; }
 					}
-					if(breaks){ break; }
-				}
-				right_offsetr = (sumTextFiles + r) - offset;
-				datasize++;
-				scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
-			}else{
-				for(int i = 0; i < num_files; i++){ // for finding the right spot in scroll[].line
-					for(int j = 0; j < files[i].textSize; j++){
+
+					right_offsetr = /*sumTextFiles +*/ offset; //added the PLUS 1
+					datasize++;
+					scroll[saved_line].number = right_offsetr;
+				}else{
+					for(int i = 0; i < num_files; i++){ // for finding the right spot in scroll[].line
+						for(int j = 0; j < files[i].textSize; j++){
+							if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
+								offset = scroll[line_counter].number & 0XFFFF;
+								saved_line = line_counter;
+								breaks = true;
+							}
+							line_counter++;
+							if(breaks){ break; }
+						}
+						if(breaks){ break; }
+					}
+					//finding the label
+					breaks = false;
+					int extra_lines = 0;
+					for(int l = 0; l < current_file; l++){
+						extra_lines += files[l].textSize;
+					}
+					line_counter = offset + extra_lines;
+					while(!breaks){
 						if(scroll[line_counter].line == current_line && scroll[line_counter].file == current_file){
-							offset = scroll[line_counter].number & 0XFFFF;
-							saved_line = line_counter;
+							rightline = line_counter;
 							breaks = true;
 						}
 						line_counter++;
-						if(breaks){ break; }
 					}
-					if(breaks){ break; }
+					//Stack = totalsize
+					// this is how to find offset
+					// add the text file size to the data soze that the lable is at to find the offset
+					// than 9 - 6 = 3. add the 3 to the value given in the obj (for the first one)
+					/*right_offsetr = (sumTextFiles + datasize) - offset;
+					datasize++;
+					scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
+					*/
+					right_offsetr = rightline - offset;
+					scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
 				}
-				//Stack = totalsize
-				// this is how to find offset
-				// add the text file size to the data soze that the lable is at to find the offset
-				// than 9 - 6 = 3. add the 3 to the value given in the obj (for the first one)
-				right_offsetr = (sumTextFiles + datasize) - offset;
-				datasize++;
-				scroll[saved_line].number = scroll[saved_line].number + right_offsetr;
 			}
 		}
-	}
-	
+    }
 	for(int m = 0; m < totalsize; m++){
 		fprintf(outFilePtr, "%d\n", scroll[m].number);
 	}
